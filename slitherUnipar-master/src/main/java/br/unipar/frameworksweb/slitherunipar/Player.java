@@ -11,15 +11,25 @@ public class Player {
     private Position position;
     private double angle;
     private int points;
+    private int botsEaten;
 
     public Player(String name, Position position, double angle) {
         this.name = name;
         this.position = position;
         this.angle = angle;
         this.points = 0;
+
     }
 
     public void addPoints(int points) {
         this.points += points;
+    }
+
+    public void incrementBotsEaten() {
+        this.botsEaten++;
+    }
+
+    public int getBotsEaten() {
+        return botsEaten;
     }
 }

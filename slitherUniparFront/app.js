@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const gameArea = document.getElementById('game-area');
     const playerImages = {};
     const botImages = {};
+    const playerRotation = {};
+    const botRotation = {};
     let loggedInPlayer = null;
     const playerSpeed = 50;
     const followDistance = 50;
@@ -24,7 +26,7 @@ document.addEventListener("DOMContentLoaded", function() {
         console.log('Connected: ' + frame);
         stompClient.subscribe('/topic/game', function(response) {
             const data = JSON.parse(response.body);
-            updateGameState(data, gameArea, loggedInPlayer, playerImages, botImages);
+            updateGameState(data, gameArea, loggedInPlayer, playerImages, botImages, botRotation, playerRotation);
         });
     });
 
@@ -66,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     loggedInPlayer.position.x += moveX * lerpFactor;
                     loggedInPlayer.position.y += moveY * lerpFactor;
 
-                    updatePlayerPosition(loggedInPlayer);
+                    updatePlayerPosition(loggedInPlayer, mousePosition, playerRotation);
 
                     if (stompClient) {
                         const move = {
@@ -83,23 +85,29 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-function updatePlayerPosition(player) {
+function updatePlayerPosition(player, mousePosition, playerRotation) {
     const playerElement = document.querySelector(`[data-player-name="${player.name}"]`);
     if (playerElement) {
         playerElement.style.left = `${player.position.x}px`;
         playerElement.style.top = `${player.position.y}px`;
 
-        // const dx = mousePosition.x - player.position.x;
-        // const dy = mousePosition.y - player.position.y;
-        // const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+        const dx = mousePosition.x - player.position.x;
+        const dy = mousePosition.y - player.position.y;
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI) - 270;
 
-        playerElement.style.transform = `rotate(90deg)`;
+        playerRotation[player.name] = angle;
+
+        playerElement.style.transform = `rotate(${playerRotation[player.name]}deg)`;
     }
 }
 
 
-function updateGameState(data, gameArea, loggedInPlayer, playerImages, botImages) {
+function updateGameState(data, gameArea, loggedInPlayer, playerImages, botImages, botRotation, playerRotation) {
     gameArea.innerHTML = '';
+    const rankingList = document.getElementById('ranking-list');
+    rankingList.innerHTML = '';
+
+    const sortedPlayers = data.players.sort((a, b) => b.botsEaten - a.botsEaten);
 
     data.players.forEach(player => {
         const playerElement = document.createElement('div');
@@ -112,7 +120,12 @@ function updateGameState(data, gameArea, loggedInPlayer, playerImages, botImages
         playerElement.style.backgroundSize = 'contain';
         playerElement.style.backgroundRepeat = 'no-repeat';
         playerElement.style.backgroundPosition = 'center';
+        playerElement.style.transform = `rotate(${playerRotation[player.name]}deg)`;
         gameArea.appendChild(playerElement);
+
+        const rankingItem = document.createElement('li');
+        rankingItem.textContent = `${player.name} - ${player.botsEaten} PONTOS`;
+        rankingList.appendChild(rankingItem);
 
         if (player.name === loggedInPlayer.name) {
             loggedInPlayer.position = player.position;
@@ -130,15 +143,25 @@ function updateGameState(data, gameArea, loggedInPlayer, playerImages, botImages
         botElement.style.backgroundSize = 'contain';
         botElement.style.backgroundRepeat = 'no-repeat';
         botElement.style.backgroundPosition = 'center';
+        botElement.style.transform = `rotate(${getOrCreateRotation(bot.name, botRotation)}deg)`;
         gameArea.appendChild(botElement);
     });
+
+    document.getElementById('ranking-container').style.display = 'block';
 }
 
 function getOrCreateImage(id, imageStorage) {
-    if (!imageStorage[id]) {
+    if (!imageStorage[id]) {''
         imageStorage[id] = generateRandomImage();
     }
     return imageStorage[id];
+}
+
+function getOrCreateRotation(id, rotationStorage) {
+    if (!rotationStorage[id]) {
+        rotationStorage[id] = Math.floor(Math.random() * 4) * 90;
+    }
+    return rotationStorage[id];
 }
 
 function generateRandomImage() {

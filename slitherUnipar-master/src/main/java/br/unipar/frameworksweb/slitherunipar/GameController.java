@@ -121,40 +121,44 @@ public class GameController {
 
     private void checkCollisions() {
         final double COLLISION_MARGIN = 10.0;
-        List<Player> entitiesToRemove = new ArrayList<>();
+        List<Bot> botsToRemove = new ArrayList<>();
+        List<Player> playersToRemove = new ArrayList<>();
 
+        // Verifica colisões entre jogadores e bots
         for (Player player : new ArrayList<>(gameState.getPlayers().values())) {
             for (Bot bot : new ArrayList<>(gameState.getBots().values())) {
                 if (calculateDistance(player.getPosition(), bot.getPosition()) <= COLLISION_MARGIN) {
                     player.addPoints(bot.getPoints());
-                    entitiesToRemove.add(bot);
+                    player.incrementBotsEaten(); // Método para incrementar a contagem de bots comidos
+                    botsToRemove.add(bot);
                     System.out.println("Player " + player.getName() + " collided with bot " + bot.getName());
                 }
             }
         }
 
+        // Verifica colisões entre jogadores
         for (Player player1 : new ArrayList<>(gameState.getPlayers().values())) {
             for (Player player2 : new ArrayList<>(gameState.getPlayers().values())) {
                 if (!player1.equals(player2) && calculateDistance(player1.getPosition(), player2.getPosition()) <= COLLISION_MARGIN) {
                     player1.addPoints(player2.getPoints());
-                    entitiesToRemove.add(player2);
+                    playersToRemove.add(player2);
                     System.out.println("Player " + player1.getName() + " collided with player " + player2.getName());
                 }
             }
         }
 
-        for (Player entity : entitiesToRemove) {
-            if (entity instanceof Bot) {
-                gameState.getBots().remove(entity.getName());
-                System.out.println("Bot " + entity.getName() + " removed");
-            } else if (entity instanceof Player) {
-                gameState.getPlayers().remove(entity.getName());
-                System.out.println("Player " + entity.getName() + " removed");
-            }
+        // Remove bots e jogadores conforme necessário
+        for (Bot bot : botsToRemove) {
+            gameState.getBots().remove(bot.getName());
+            System.out.println("Bot " + bot.getName() + " removed");
         }
 
-
+        for (Player player : playersToRemove) {
+            gameState.getPlayers().remove(player.getName());
+            System.out.println("Player " + player.getName() + " removed");
+        }
     }
+
 
     @MessageMapping("/move")
     @SendTo("/topic/game")
